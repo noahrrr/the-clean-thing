@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ASCEND — Dev Personnel RPG</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#0d0d14;color:#e8e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding-bottom:5rem}
+.screen{display:none}.screen.active{display:block}
+.wrap{max-width:480px;margin:0 auto;padding:0 1rem}
+
+/* NAV */
+.nav{position:fixed;bottom:0;left:0;right:0;background:#111120;border-top:1px solid #2a2a3e;display:flex;z-index:100}
+.nav button{flex:1;background:none;border:none;color:#666;padding:.7rem .3rem .5rem;font-size:.7rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.2rem}
+.nav button.active{color:#f1c40f}
+.nav button span.ico{font-size:1.2rem}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:1rem 1rem .8rem;border-bottom:2px solid #f1c40f22;margin-bottom:.5rem}
+.hdr-name{font-size:1.25rem;font-weight:800;color:#f1c40f}
+.hdr-sub{font-size:.78rem;color:#888;margin-top:.15rem}
+.xp-wrap{margin-top:.5rem}
+.xp-label{font-size:.72rem;color:#aaa;margin-bottom:.25rem}
+.bar-outer{background:#1e1e2e;border-radius:99px;height:9px;overflow:hidden}
+.bar-inner{height:100%;border-radius:99px;transition:width .5s ease}
+.streak-line{font-size:.75rem;color:#e74c3c;margin-top:.35rem}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin:.6rem 0}
+.stat-card{background:#1a1a2e;border-radius:10px;padding:.55rem .75rem}
+.stat-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem}
+.stat-name{font-size:.72rem;font-weight:600}
+.stat-val{font-size:.72rem;color:#666}
+.stat-bar{height:5px;border-radius:99px;background:#0a0a14;overflow:hidden}
+.stat-fill{height:100%;border-radius:99px;transition:width .4s}
+
+/* SECTION */
+.sec-title{font-size:.72rem;font-weight:700;color:#555;letter-spacing:.1em;text-transform:uppercase;margin:.9rem 0 .45rem}
+
+/* ACTION BUTTONS */
+.act-btn{display:flex;align-items:center;gap:.75rem;background:#1a1a2e;border:1px solid #242438;border-radius:12px;padding:.75rem .9rem;margin-bottom:.45rem;width:100%;cursor:pointer;text-align:left;color:#e8e8f0;transition:background .12s,transform .1s}
+.act-btn:active{background:#22223a;transform:scale(.98)}
+.act-btn.boss-btn{border-color:#e74c3c33;background:#180e0e}
+.act-btn.disabled{opacity:.35;cursor:not-allowed}
+.act-ico{font-size:1.35rem;width:2rem;text-align:center}
+.act-info{flex:1;min-width:0}
+.act-name{font-size:.9rem;font-weight:600}
+.act-desc{font-size:.68rem;color:#777;margin-top:.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act-cost{font-size:.72rem;color:#f1c40f;white-space:nowrap;margin-left:.3rem}
+
+/* RESULT / CARD */
+.card{background:#1a1a2e;border-radius:14px;padding:1.1rem 1.2rem;margin:.6rem 0}
+.card-title{font-size:1rem;font-weight:700;margin-bottom:.7rem;display:flex;align-items:center;gap:.4rem}
+.res-item{display:flex;justify-content:space-between;align-items:center;padding:.28rem 0;font-size:.85rem;border-bottom:1px solid #1e1e2e}
+.res-item:last-child{border:none}
+.up{color:#2ecc71}.dn{color:#e74c3c}.gold{color:#f1c40f;font-weight:700}
+.msg-txt{color:#aaa;font-style:italic;line-height:1.55;margin-bottom:.8rem;font-size:.85rem}
+.levelup-banner{background:linear-gradient(135deg,#f39c12,#e74c3c);color:#fff;border-radius:10px;padding:.8rem;text-align:center;font-weight:800;font-size:.95rem;margin:.6rem 0;animation:pulse .5s ease}
+@keyframes pulse{0%{transform:scale(.95)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+.quest-reward{background:#152015;border:1px solid #2ecc7133;border-radius:10px;padding:.65rem .9rem;margin:.4rem 0}
+.quest-r-name{color:#2ecc71;font-weight:700;font-size:.82rem}
+.quest-r-sub{color:#aaa;font-size:.72rem;margin-top:.15rem}
+
+/* EVENTS */
+.ev-card{border-radius:14px;padding:1.1rem 1.2rem;margin:.6rem 0}
+.ev-title{font-size:1rem;font-weight:800;margin-bottom:.5rem}
+.ev-desc{color:#ccc;line-height:1.55;margin-bottom:1rem;font-size:.85rem}
+.choice-btn{display:block;width:100%;background:#141424;border:1px solid #2a2a3e;border-radius:11px;padding:.8rem 1rem;margin-bottom:.45rem;cursor:pointer;text-align:left;font-size:.85rem;color:#e8e8f0;transition:background .12s,transform .1s}
+.choice-btn:active{background:#1e1e3e;transform:scale(.98)}
+
+/* BOSS */
+.boss-card{background:linear-gradient(135deg,#1e0808,#120505);border:1px solid #e74c3c22;border-radius:14px;padding:1.2rem;text-align:center;margin:.6rem 0}
+.boss-emoji{font-size:2.8rem;margin-bottom:.4rem}
+.boss-name{font-size:1.1rem;font-weight:800;color:#e74c3c}
+.boss-sub{color:#888;font-size:.8rem;margin-top:.3rem}
+.hp-row{display:flex;align-items:center;gap:.7rem;margin:.5rem 0;font-size:.8rem}
+.hp-lbl{width:3.5rem;color:#777;text-align:right}
+.feedback-box{border-radius:10px;padding:.7rem .9rem;margin:.5rem 0;font-size:.85rem}
+.feedback-ok{background:#102010;border:1px solid #2ecc7144;color:#2ecc71}
+.feedback-no{background:#200e0e;border:1px solid #e74c3c44;color:#e74c3c}
+
+/* QUESTS */
+.quest-card{background:#1a1a2e;border-radius:11px;padding:.75rem 1rem;margin-bottom:.45rem;border-left:3px solid #333}
+.quest-card.done{opacity:.5;border-left-color:#2ecc71}
+.quest-card.open{border-left-color:#f39c12}
+.q-name{font-weight:600;font-size:.88rem}
+.q-desc{color:#777;font-size:.74rem;margin-top:.15rem}
+.q-rew{color:#f39c12;font-size:.72rem;margin-top:.25rem}
+
+/* CREATE */
+.create-screen{padding:1.5rem 1rem 2rem}
+.logo-block{text-align:center;padding:1.5rem 0 1.2rem}
+.logo-title{font-size:2.2rem;font-weight:900;color:#f1c40f;letter-spacing:.04em}
+.logo-sub{color:#777;margin-top:.3rem;font-size:.82rem}
+label.field-lbl{display:block;font-size:.72rem;color:#777;margin-bottom:.35rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+input.txt-input{width:100%;background:#1a1a2e;border:1px solid #2a2a3e;border-radius:10px;padding:.75rem 1rem;color:#e8e8f0;font-size:.95rem;outline:none;margin-bottom:1rem}
+input.txt-input:focus{border-color:#f1c40f55}
+.arch-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin:.35rem 0 1.2rem}
+.arch-card{background:#1a1a2e;border:2px solid #242438;border-radius:12px;padding:.8rem .6rem;cursor:pointer;text-align:center;transition:border-color .15s,background .15s}
+.arch-card.sel{border-color:#f1c40f;background:#1c1c0d}
+.arch-emo{font-size:1.7rem}
+.arch-nm{font-size:.82rem;font-weight:700;margin:.25rem 0}
+.arch-ds{font-size:.67rem;color:#777;line-height:1.3}
+.btn-start{width:100%;background:linear-gradient(135deg,#f39c12,#e74c3c);color:#fff;border:none;border-radius:12px;padding:.95rem;font-size:.95rem;font-weight:800;cursor:pointer;letter-spacing:.02em}
+
+/* BACK BTN */
+.back-btn{display:block;text-align:center;background:#1a1a2e;border:1px solid #2a2a3e;border-radius:11px;padding:.75rem;color:#aaa;font-size:.85rem;cursor:pointer;margin-top:.4rem;width:100%}
+.back-btn:active{background:#222238}
+</style>
+</head>
+<body>
+
+<!-- ══ CREATE SCREEN ══ -->
+<div id="s-create" class="screen active">
+<div class="create-screen wrap">
+  <div class="logo-block">
+    <div class="logo-title">⚡ ASCEND</div>
+    <div class="logo-sub">Le RPG du Développement Personnel</div>
+  </div>
+  <label class="field-lbl">Ton nom</label>
+  <input id="inp-name" class="txt-input" type="text" placeholder="Ton prénom ou pseudo" maxlength="28">
+  <label class="field-lbl">Archétype</label>
+  <div class="arch-grid" id="arch-grid"></div>
+  <button class="btn-start" onclick="startGame()">Commencer ma quête →</button>
+</div>
+</div>
+
+<!-- ══ MAIN SCREEN ══ -->
+<div id="s-main" class="screen">
+  <div id="hdr-main"></div>
+  <div class="wrap">
+    <div id="stats-panel"></div>
+    <div class="sec-title">Actions</div>
+    <div id="actions-panel"></div>
+  </div>
+</div>
+
+<!-- ══ RESULT SCREEN ══ -->
+<div id="s-result" class="screen">
+  <div id="hdr-result"></div>
+  <div class="wrap" id="result-content"></div>
+</div>
+
+<!-- ══ EVENT SCREEN ══ -->
+<div id="s-event" class="screen">
+  <div id="hdr-event"></div>
+  <div class="wrap" id="event-content"></div>
+</div>
+
+<!-- ══ BOSS SCREEN ══ -->
+<div id="s-boss" class="screen">
+  <div id="hdr-boss"></div>
+  <div class="wrap" id="boss-content"></div>
+</div>
+
+<!-- ══ QUESTS SCREEN ══ -->
+<div id="s-quests" class="screen">
+  <div id="hdr-quests"></div>
+  <div class="wrap" id="quests-content"></div>
+</div>
+
+<!-- ══ NAV ══ -->
+<nav class="nav" id="bottom-nav" style="display:none">
+  <button onclick="showMain()" id="nav-play"><span class="ico">⚡</span>Jouer</button>
+  <button onclick="showQuests()" id="nav-quests"><span class="ico">📜</span>Quêtes</button>
+  <button onclick="confirmReset()" id="nav-reset"><span class="ico">🔄</span>Nouveau</button>
+</nav>
+
+<script>
+// ═══════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════
+
+const ARCHETYPES = {
+  "Guerrier":  {emoji:"⚔️", color:"#e74c3c", desc:"Force et discipline. Tu avances quoi qu'il arrive.",
+                stats:{focus:6,energie:8,mental:5,discipline:9,sante:7,social:5}},
+  "Érudit":    {emoji:"📚", color:"#3498db", desc:"La connaissance est ton arme.",
+                stats:{focus:9,energie:5,mental:8,discipline:7,sante:4,social:7}},
+  "Athlète":   {emoji:"🏆", color:"#2ecc71", desc:"Le corps est ton temple. L'effort te définit.",
+                stats:{focus:6,energie:9,mental:6,discipline:8,sante:9,social:7}},
+  "Moine":     {emoji:"🧘", color:"#9b59b6", desc:"La paix intérieure est ta force.",
+                stats:{focus:8,energie:6,mental:10,discipline:8,sante:6,social:5}},
+  "Leader":    {emoji:"👑", color:"#f39c12", desc:"Tu inspires les autres.",
+                stats:{focus:7,energie:7,mental:7,discipline:7,sante:6,social:10}},
+};
+
+const STAT_META = {
+  focus:      {emoji:"🎯", color:"#3498db",  name:"Focus"},
+  energie:    {emoji:"⚡", color:"#f1c40f",  name:"Énergie"},
+  mental:     {emoji:"🧠", color:"#9b59b6",  name:"Mental"},
+  discipline: {emoji:"🔥", color:"#e74c3c",  name:"Discipline"},
+  sante:      {emoji:"💪", color:"#2ecc71",  name:"Santé"},
+  social:     {emoji:"🌐", color:"#1abc9c",  name:"Social"},
+};
+
+const ACTIONS = [
+  {id:0, name:"Deep Work",     emoji:"💻", cost:3, xp:30,
+   gains:{focus:2,discipline:1},
+   desc:"2h de concentration totale. Zéro distraction.",
+   msg:"Tu rentres dans un état de flow intense. Tu as accompli plus en 2h qu'en une journée normale.",
+   track:null},
+  {id:1, name:"S'entraîner",   emoji:"🏋️", cost:4, xp:35,
+   gains:{sante:3,discipline:2,energie:-1},
+   desc:"Entraînement physique intense.",
+   msg:"La sueur coule. Tu dépasses ta limite. Plus fort qu'hier.",
+   track:"train_today"},
+  {id:2, name:"Méditer",       emoji:"🧘", cost:1, xp:20,
+   gains:{mental:3,focus:1,energie:2},
+   desc:"20 min. Calme le chaos intérieur.",
+   msg:"Les pensées s'agitent, puis le silence s'installe. Tout est plus net.",
+   track:"meditate_today"},
+  {id:3, name:"Apprendre",     emoji:"📖", cost:2, xp:25,
+   gains:{focus:1,mental:2,social:1},
+   desc:"Livre, podcast, formation.",
+   msg:"Une idée nouvelle s'allume. Une connexion inattendue se crée.",
+   track:"learn_count"},
+  {id:4, name:"Se connecter",  emoji:"🤝", cost:2, xp:20,
+   gains:{social:3,mental:1},
+   desc:"Appel, rencontre, donner de la valeur.",
+   msg:"Tu tends la main sans attente. Cette relation compte.",
+   track:"connect_count"},
+  {id:5, name:"Créer",         emoji:"🎨", cost:3, xp:30,
+   gains:{focus:2,mental:2,social:1},
+   desc:"Écrire, coder, construire.",
+   msg:"Les idées coulent. Tu as créé quelque chose qui n'existait pas.",
+   track:null},
+  {id:6, name:"Se reposer",    emoji:"😴", cost:0, xp:5,
+   gains:{energie:5,sante:1},
+   desc:"Récupérer — stratégique, pas de la faiblesse.",
+   msg:"Tu lâches prise. Le corps récupère. Demain tu seras plus fort.",
+   track:null},
+  {id:7, name:"Défi Boss",     emoji:"⚔️", cost:5, xp:0,
+   gains:{}, isBoss:true,
+   desc:"Affronte un ennemi intérieur. Haut risque, haute récompense.",
+   msg:"", track:null},
+];
+
+const EVENTS = [
+  {title:"TENTATION DIGITALE", color:"#f39c12",
+   desc:"Le scroll infini t'appelle. 30 min gaspillées... ou tu résistes ?",
+   choices:[
+     {label:"Poser le téléphone et résister",      fx:{discipline:2,focus:1},    xp:15, msg:"Victoire silencieuse. Ces moments comptent."},
+     {label:"Céder — juste 5 min (c'est ce qu'on dit)", fx:{discipline:-1,energie:-1}, xp:-5, msg:"30 min deviennent 2h. Tu le savais."},
+   ]},
+  {title:"OPPORTUNITÉ RISQUÉE", color:"#2ecc71",
+   desc:"Un projet excitant mais incertain se présente. Deadline courte.",
+   choices:[
+     {label:"Foncer — l'inconfort est le chemin", fx:{discipline:1,social:2,focus:1}, xp:25, msg:"Tu dis oui. L'aventure commence."},
+     {label:"Refuser — pas le bon moment",        fx:{mental:1},                     xp:5,  msg:"Tu gardes le cap. Sage décision."},
+   ]},
+  {title:"CRITIQUE PUBLIQUE", color:"#e74c3c",
+   desc:"Quelqu'un critique ton travail devant tout le monde.",
+   choices:[
+     {label:"Répondre avec calme et faits",   fx:{mental:2,social:1},  xp:20,  msg:"Tu réponds avec classe. Les gens remarquent."},
+     {label:"Ignorer et continuer d'avancer", fx:{discipline:2},       xp:15,  msg:"Tu préserves ton énergie pour ce qui compte."},
+     {label:"Répondre avec émotion",          fx:{social:-2,mental:-1},xp:-10, msg:"Tu le regrettes. Mais c'est humain."},
+   ]},
+  {title:"INSPIRATION À 3H", color:"#9b59b6",
+   desc:"Une idée brillante surgit. Le sommeil ou l'idée ?",
+   choices:[
+     {label:"Se lever pour noter",     fx:{focus:2,mental:2,sante:-1}, xp:25, msg:"L'idée est capturée. Valait le coup."},
+     {label:"Se rendormir",            fx:{sante:2,energie:2},         xp:5,  msg:"Si elle est bonne, elle reviendra."},
+   ]},
+  {title:"FLOW STATE", color:"#1abc9c",
+   desc:"Tout coule. Tu es dans la zone. Comment tu en profites ?",
+   choices:[
+     {label:"Pousser encore — journée légendaire",  fx:{focus:3,discipline:2,energie:-2}, xp:40, msg:"Tu te surpasses. Journée gravée."},
+     {label:"Finir sur une note haute et s'arrêter",fx:{mental:2,sante:1},               xp:20, msg:"Sage. L'élan sera là demain."},
+   ]},
+];
+
+const BOSSES = [
+  {name:"Le Syndrome de l'Imposteur", emoji:"👤", hp:30,
+   desc:"La voix qui dit que tu n'es pas assez bien.",
+   moves:[
+     {q:"Un gros projet. La voix dit : 'T'es pas à la hauteur.' Tu...",
+      opts:[{t:"Agis malgré la peur",dmg:15,ok:true},{t:"Procrastines jusqu'à la dernière minute",dmg:-5,ok:false},
+            {t:"Demandes de l'aide sans honte",dmg:10,ok:true},{t:"Abandonnes pour éviter l'inconfort",dmg:-15,ok:false}]},
+     {q:"Tu vois quelqu'un de plus avancé. Tu ressens...",
+      opts:[{t:"De l'inspiration — leur succès prouve que c'est possible",dmg:15,ok:true},{t:"De la jalousie transformée en carburant",dmg:10,ok:true},
+            {t:"Du découragement total",dmg:-10,ok:false},{t:"Rien — tu te compares seulement à hier",dmg:12,ok:true}]},
+   ], reward:{mental:5,discipline:3,xp:150}},
+  {name:"La Procrastination", emoji:"⏰", hp:25,
+   desc:"L'ennemi silencieux de tous tes rêves.",
+   moves:[
+     {q:"UNE chose importante. C'est inconfortable. Tu...",
+      opts:[{t:"5 secondes de courage et tu commences",dmg:15,ok:true},{t:"Fais 10 petites tâches inutiles d'abord",dmg:-5,ok:false},
+            {t:"Bloques 25 min sur le calendrier maintenant",dmg:12,ok:true},{t:"Regardes des vidéos de motivation 1h",dmg:-8,ok:false}]},
+     {q:"La vraie racine de ta procrastination ?",
+      opts:[{t:"Peur de l'échec — mieux vaut ne pas essayer",dmg:-5,ok:false},{t:"Peur du succès — et si tu dois maintenir ça ?",dmg:10,ok:true},
+            {t:"Manque de clarté sur le prochain pas concret",dmg:15,ok:true},{t:"C'est juste de la flemme",dmg:-3,ok:false}]},
+   ], reward:{discipline:5,focus:3,xp:120}},
+  {name:"Le Saboteur Intérieur", emoji:"🌑", hp:35,
+   desc:"Le narrateur toxique dans ta tête.",
+   moves:[
+     {q:"Tu échoues à quelque chose d'important. Ton réflexe ?",
+      opts:[{t:"Analyser sans jugement — qu'est-ce que ça m'apprend ?",dmg:15,ok:true},{t:"Te flageller pendant des jours",dmg:-10,ok:false},
+            {t:"Blâmer les circonstances",dmg:-5,ok:false},{t:"Voir ça comme du feedback et recalibrer",dmg:18,ok:true}]},
+     {q:"Complète : 'Je mérite...'",
+      opts:[{t:"...de souffrir pour mes erreurs",dmg:-15,ok:false},{t:"...ce que je construis par mes actions",dmg:15,ok:true},
+            {t:"...moins que les autres",dmg:-12,ok:false},{t:"...d'être traité comme je traite ceux que j'aime",dmg:18,ok:true}]},
+   ], reward:{mental:6,social:3,xp:180}},
+];
+
+const QUESTS = [
+  {name:"Premier Pas",      desc:"Effectue ta première action",         check:p=>p.actions_done>=1,                              reward:{xp:50,discipline:2}},
+  {name:"Bâtisseur",        desc:"Effectue 10 actions",                 check:p=>p.actions_done>=10,                             reward:{xp:100,focus:3}},
+  {name:"Corps & Esprit",   desc:"Entraîne-toi ET médite le même jour", check:p=>p.train_today&&p.meditate_today,                reward:{xp:80,sante:3,mental:3}},
+  {name:"Dévoreur",         desc:"Apprends 5 fois",                     check:p=>(p.learn_count||0)>=5,                          reward:{xp:90,focus:4}},
+  {name:"Slayer de Boss",   desc:"Vaincs ton premier boss intérieur",    check:p=>(p.bosses_killed||0)>=1,                        reward:{xp:200,mental:5}},
+  {name:"Régularité",       desc:"Joue 3 jours consécutifs",            check:p=>(p.streak||0)>=3,                               reward:{xp:150,discipline:5}},
+  {name:"Niveau 5",         desc:"Atteins le niveau 5",                 check:p=>(p.level||1)>=5,                                reward:{xp:0,focus:3,mental:3,discipline:3}},
+  {name:"Connecteur",       desc:"Connecte-toi aux autres 3 fois",      check:p=>(p.connect_count||0)>=3,                        reward:{xp:70,social:5}},
+];
+
+const XP_TABLE = [0,100,250,450,700,1000,1400,1900,2500,3200,4000];
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+
+let G = {}; // game state
+
+function save() { localStorage.setItem('ascend_v1', JSON.stringify(G)); }
+function load() {
+  const raw = localStorage.getItem('ascend_v1');
+  if (raw) { G = JSON.parse(raw); return true; }
+  return false;
+}
+
+function getLevel(xp) {
+  for (let i=0;i<XP_TABLE.length;i++) if (xp < XP_TABLE[i]) return Math.max(1,i-1);
+  return XP_TABLE.length-1;
+}
+function xpProgress(xp) {
+  const lv = getLevel(xp);
+  if (lv >= XP_TABLE.length-1) return {cur:XP_TABLE[lv-1],max:XP_TABLE[lv-1]};
+  return {cur:xp-XP_TABLE[lv], max:XP_TABLE[lv+1]-XP_TABLE[lv]};
+}
+function addXP(amount) {
+  const old = getLevel(G.p.xp);
+  G.p.xp += amount;
+  const nw = getLevel(G.p.xp);
+  G.p.level = nw;
+  return nw > old ? nw : null;
+}
+function clampStat(v) { return Math.min(20, Math.max(0, v)); }
+function applyStat(stat, delta) {
+  if (G.p.stats[stat] !== undefined) G.p.stats[stat] = clampStat(G.p.stats[stat]+delta);
+}
+
+function checkQuests() {
+  const done = [];
+  QUESTS.forEach((q,i) => {
+    if (!G.questDone[i] && q.check(G.p)) {
+      G.questDone[i] = true;
+      done.push(q);
+      Object.entries(q.reward).forEach(([k,v]) => {
+        if (k==='xp') addXP(v);
+        else if (G.p.stats[k]!==undefined) G.p.stats[k] = clampStat(G.p.stats[k]+v);
+      });
+    }
+  });
+  return done;
+}
+
+function updateStreak() {
+  const today = new Date().toISOString().slice(0,10);
+  const last = G.p.last_played;
+  if (last === today) return;
+  if (last) {
+    const diff = (new Date(today)-new Date(last))/(1000*86400);
+    G.p.streak = diff===1 ? (G.p.streak||1)+1 : 1;
+  } else { G.p.streak = 1; }
+  G.p.last_played = today;
+  G.p.train_today = false;
+  G.p.meditate_today = false;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER HELPERS
+// ═══════════════════════════════════════════════
+
+function hdrHTML() {
+  const arch = ARCHETYPES[G.p.archetype];
+  const lv = getLevel(G.p.xp);
+  const {cur,max} = xpProgress(G.p.xp);
+  const pct = max ? Math.round(cur/max*100) : 100;
+  const streak = G.p.streak||1;
+  return `<div class="hdr"><div class="wrap">
+    <div class="hdr-name">${arch.emoji} ${G.p.name}</div>
+    <div class="hdr-sub" style="color:${arch.color}">${G.p.archetype}</div> <div style="display:flex;align-items:center;gap:.5rem;margin-top:.1rem"><span style="font-size:.72rem;color:#888">Niveau</span><span style="font-size:.85rem;font-weight:800;color:#f1c40f">${lv}</span></div>
+    <div class="xp-wrap">
+      <div class="xp-label">XP ${cur}/${max}</div>
+      <div class="bar-outer"><div class="bar-inner" style="width:${pct}%;background:linear-gradient(90deg,#f39c12,#e74c3c)"></div></div>
+    </div>
+    <div class="streak-line">🔥 Streak ${streak} jour${streak>1?'s':''} · ${new Date().toLocaleDateString('fr-FR')}</div>
+  </div></div>`;
+}
+
+function statsHTML() {
+  let h = '<div class="stats-grid">';
+  Object.entries(STAT_META).forEach(([k,m]) => {
+    const v = G.p.stats[k];
+    const pct = (v/20)*100;
+    h += `<div class="stat-card">
+      <div class="stat-row"><span class="stat-name">${m.emoji} ${m.name}</span><span class="stat-val">${v}/20</span></div>
+      <div class="stat-bar"><div class="stat-fill" style="width:${pct}%;background:${m.color}"></div></div>
+    </div>`;
+  });
+  return h + '</div>';
+}
+
+function actionsHTML() {
+  let h = '';
+  ACTIONS.forEach(a => {
+    const en = G.p.stats.energie;
+    const disabled = a.cost > en;
+    const costStr = a.cost > 0 ? `-${a.cost}⚡` : 'gratuit';
+    const gainsStr = Object.entries(a.gains).filter(([,v])=>v>0).map(([s,v])=>`+${v} ${STAT_META[s].name}`).join(' · ');
+    const desc = a.desc + (gainsStr ? ' · ' + gainsStr : '');
+    const cls = `act-btn${a.isBoss?' boss-btn':''}${disabled?' disabled':''}`;
+    const click = disabled ? '' : `onclick="doAction(${a.id})"`;
+    h += `<button class="${cls}" ${click}>
+      <span class="act-ico">${a.emoji}</span>
+      <span class="act-info"><span class="act-name">${a.name}</span><span class="act-desc">${desc}</span></span>
+      <span class="act-cost">${costStr}</span>
+    </button>`;
+  });
+  return h;
+}
+
+function questsHTML() {
+  let open='', done='';
+  QUESTS.forEach((q,i) => {
+    const rew = Object.entries(q.reward).map(([k,v])=>`+${v} ${k}`).join(' · ');
+    if (G.questDone[i]) {
+      done += `<div class="quest-card done"><div class="q-name">✅ ${q.name}</div><div class="q-desc">${q.desc}</div></div>`;
+    } else {
+      open += `<div class="quest-card open"><div class="q-name">⬜ ${q.name}</div><div class="q-desc">${q.desc}</div><div class="q-rew">🎁 ${rew}</div></div>`;
+    }
+  });
+  return (open||'<p style="color:#555;font-size:.85rem">Toutes les quêtes sont accomplies !</p>') + (done ? `<div class="sec-title" style="margin-top:.8rem">Complètes</div>${done}` : '');
+}
+
+function resultExtras(levelUp, quests) {
+  let h = '';
+  if (levelUp) h += `<div class="levelup-banner">🎉 LEVEL UP → Niveau ${levelUp} !</div>`;
+  quests.forEach(q => {
+    const rew = Object.entries(q.reward).map(([k,v])=>`+${v} ${k}`).join(' · ');
+    h += `<div class="quest-reward"><div class="quest-r-name">🏆 ${q.name}</div><div class="quest-r-sub">${q.desc} · ${rew}</div></div>`;
+  });
+  return h;
+}
+
+// ═══════════════════════════════════════════════
+// SCREENS
+// ═══════════════════════════════════════════════
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function setNavActive(id) {
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  const el = document.getElementById('nav-'+id);
+  if (el) el.classList.add('active');
+}
+
+function showMain() {
+  document.getElementById('hdr-main').innerHTML = hdrHTML();
+  document.getElementById('stats-panel').innerHTML = statsHTML();
+  document.getElementById('actions-panel').innerHTML = actionsHTML();
+  showScreen('main');
+  setNavActive('play');
+}
+
+function showQuests() {
+  document.getElementById('hdr-quests').innerHTML = hdrHTML();
+  document.getElementById('quests-content').innerHTML = questsHTML();
+  showScreen('quests');
+  setNavActive('quests');
+}
+
+// ═══════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════
+
+function doAction(id) {
+  const a = ACTIONS[id];
+  if (a.isBoss) { startBoss(); return; }
+  if (G.p.stats.energie < a.cost) return;
+
+  G.p.stats.energie = clampStat(G.p.stats.energie - a.cost);
+  const changes = [];
+  Object.entries(a.gains).forEach(([s,d]) => {
+    if (G.p.stats[s]!==undefined) {
+      const before = G.p.stats[s];
+      applyStat(s,d);
+      const diff = G.p.stats[s]-before;
+      if (diff) changes.push({s,diff});
+    }
+  });
+
+  G.p.actions_done = (G.p.actions_done||0)+1;
+  if (a.track==='train_today')    G.p.train_today=true;
+  if (a.track==='meditate_today') G.p.meditate_today=true;
+  if (a.track==='learn_count')    G.p.learn_count=(G.p.learn_count||0)+1;
+  if (a.track==='connect_count')  G.p.connect_count=(G.p.connect_count||0)+1;
+
+  const levelUp = addXP(a.xp);
+  const quests = checkQuests();
+  save();
+
+  // Build result
+  let changesH = '';
+  changes.forEach(({s,diff}) => {
+    const m=STAT_META[s], cls=diff>0?'up':'dn', arr=diff>0?'↑':'↓';
+    changesH += `<div class="res-item"><span>${m.emoji} ${m.name}</span><span class="${cls}">${arr}${Math.abs(diff)} → ${G.p.stats[s]}/20</span></div>`;
+  });
+  if (a.xp) changesH += `<div class="res-item"><span>✨ XP</span><span class="gold">+${a.xp}</span></div>`;
+
+  document.getElementById('hdr-result').innerHTML = hdrHTML();
+  document.getElementById('result-content').innerHTML = `
+    <div class="card">
+      <div class="card-title">${a.emoji} ${a.name}</div>
+      <p class="msg-txt">${a.msg}</p>
+      ${changesH}
+    </div>
+    ${resultExtras(levelUp, quests)}
+    ${id!==6 && Math.random()<0.35 ? `<button class="btn-start" style="margin-top:.5rem" onclick="showEvent()">⚡ Événement →</button>` : `<button class="back-btn" onclick="showMain()">← Retour au jeu</button>`}
+  `;
+  showScreen('result');
+  setNavActive('play');
+
+  // Store random event if needed
+  if (id!==6 && Math.random()<0.35) {
+    G._pendingEvent = EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  }
+}
+
+// ═══════════════════════════════════════════════
+// EVENT
+// ═══════════════════════════════════════════════
+
+function showEvent() {
+  if (!G._pendingEvent) { showMain(); return; }
+  const ev = G._pendingEvent;
+  let choicesH = ev.choices.map((c,i)=>`<button class="choice-btn" onclick="pickEvent(${i})">${c.label}</button>`).join('');
+  document.getElementById('hdr-event').innerHTML = hdrHTML();
+  document.getElementById('event-content').innerHTML = `
+    <div class="ev-card" style="background:#13131f;border:1px solid ${ev.color}33;margin-top:.6rem">
+      <div class="ev-title" style="color:${ev.color}">⚡ ${ev.title}</div>
+      <div class="ev-desc">${ev.desc}</div>
+      ${choicesH}
+    </div>`;
+  showScreen('event');
+}
+
+function pickEvent(i) {
+  const ev = G._pendingEvent;
+  if (!ev) { showMain(); return; }
+  const c = ev.choices[i];
+  Object.entries(c.fx).forEach(([s,d])=>applyStat(s,d));
+  const levelUp = c.xp>0 ? addXP(c.xp) : null;
+  const quests = checkQuests();
+  G._pendingEvent = null;
+  save();
+
+  let changesH = '';
+  Object.entries(c.fx).forEach(([s,d]) => {
+    const m=STAT_META[s], cls=d>0?'up':'dn', arr=d>0?'↑':'↓';
+    changesH += `<div class="res-item"><span>${m.emoji} ${m.name}</span><span class="${cls}">${arr}${Math.abs(d)} → ${G.p.stats[s]}/20</span></div>`;
+  });
+  if (c.xp) changesH += `<div class="res-item"><span>✨ XP</span><span class="${c.xp>0?'gold':'dn'}">${c.xp>0?'+':''}${c.xp}</span></div>`;
+
+  document.getElementById('hdr-event').innerHTML = hdrHTML();
+  document.getElementById('event-content').innerHTML = `
+    <div class="ev-card" style="background:#13131f;border:1px solid ${ev.color}33;margin-top:.6rem">
+      <div class="ev-title" style="color:${ev.color}">⚡ ${ev.title}</div>
+      <p class="msg-txt">"${c.label}" — ${c.msg}</p>
+      ${changesH}
+    </div>
+    ${resultExtras(levelUp, quests)}
+    <button class="back-btn" onclick="showMain()">← Retour au jeu</button>`;
+}
+
+// ═══════════════════════════════════════════════
+// BOSS
+// ═══════════════════════════════════════════════
+
+function startBoss() {
+  if (G.p.stats.energie < 5) { alert("Il te faut 5⚡ pour affronter un boss !"); return; }
+  const available = BOSSES.map((_,i)=>i).filter(i=>!G.killedBosses.includes(i));
+  if (!available.length) {
+    document.getElementById('hdr-boss').innerHTML = hdrHTML();
+    document.getElementById('boss-content').innerHTML = `
+      <div class="boss-card" style="text-align:center;padding:2rem">
+        <div style="font-size:2.5rem">🏆</div>
+        <div style="font-weight:800;color:#f1c40f;margin:.5rem 0">Tous les boss vaincus !</div>
+        <div style="color:#888;font-size:.85rem">Tu as maîtrisé tes ennemis intérieurs.</div>
+      </div>
+      <button class="back-btn" onclick="showMain()">← Retour</button>`;
+    showScreen('boss'); return;
+  }
+  const bIdx = available[Math.floor(Math.random()*available.length)];
+  G._boss = {idx:bIdx, move:0, playerHp:20, bossHp:BOSSES[bIdx].hp, dmgDealt:0};
+  save();
+  renderBossMove();
+}
+
+function renderBossMove(feedback) {
+  const bf = G._boss;
+  const boss = BOSSES[bf.idx];
+  const move = boss.moves[bf.move];
+  const bPct = Math.round(bf.bossHp/boss.hp*100);
+  const pPct = Math.round(bf.playerHp/20*100);
+  const feedH = feedback ? `<div class="feedback-box ${feedback.ok?'feedback-ok':'feedback-no'}">${feedback.msg}</div>` : '';
+  const optsH = move.opts.map((o,i)=>`<button class="choice-btn" onclick="bossPick(${i})">${o.t}</button>`).join('');
+
+  document.getElementById('hdr-boss').innerHTML = hdrHTML();
+  document.getElementById('boss-content').innerHTML = `
+    <div class="boss-card">
+      <div class="boss-emoji">${boss.emoji}</div>
+      <div class="boss-name">${boss.name}</div>
+      <div class="boss-sub">${boss.desc}</div>
+      <div class="hp-row"><span class="hp-lbl">👹 Boss</span>
+        <div style="flex:1"><div class="bar-outer"><div class="bar-inner" style="width:${bPct}%;background:#e74c3c"></div></div></div>
+        <span style="font-size:.75rem;color:#e74c3c">${bf.bossHp}/${boss.hp}</span></div>
+      <div class="hp-row"><span class="hp-lbl">💚 Toi</span>
+        <div style="flex:1"><div class="bar-outer"><div class="bar-inner" style="width:${pPct}%;background:#2ecc71"></div></div></div>
+        <span style="font-size:.75rem;color:#2ecc71">${bf.playerHp}/20</span></div>
+    </div>
+    ${feedH}
+    <div class="card"><div style="font-size:.85rem;color:#f1c40f;font-weight:700;line-height:1.4">${move.q}</div></div>
+    ${optsH}`;
+  showScreen('boss');
+}
+
+function bossPick(i) {
+  const bf = G._boss;
+  const boss = BOSSES[bf.idx];
+  const opt = boss.moves[bf.move].opts[i];
+  let feedback;
+
+  if (opt.ok) {
+    bf.bossHp = Math.max(0, bf.bossHp-Math.abs(opt.dmg));
+    bf.dmgDealt += Math.abs(opt.dmg);
+    feedback = {ok:true, msg:`✅ Bonne réponse ! -${Math.abs(opt.dmg)} HP au boss`};
+  } else {
+    const atk = 3+Math.floor(Math.random()*6);
+    bf.playerHp = Math.max(0, bf.playerHp-atk);
+    feedback = {ok:false, msg:`❌ Le boss riposte ! -${atk} HP`};
+  }
+
+  bf.move++;
+  save();
+
+  if (bf.playerHp<=0 || bf.move>=boss.moves.length) {
+    endBoss(feedback);
+  } else {
+    renderBossMove(feedback);
+  }
+}
+
+function endBoss(lastFeedback) {
+  const bf = G._boss;
+  const boss = BOSSES[bf.idx];
+  const win = bf.playerHp>0 && (bf.bossHp===0 || bf.dmgDealt>=Math.floor(boss.hp/2));
+
+  G.p.stats.energie = clampStat(G.p.stats.energie-5);
+  let rewH = '';
+  if (win) {
+    Object.entries(boss.reward).forEach(([k,v]) => {
+      if (k==='xp') {
+        const lv=addXP(v);
+        rewH += `<div class="res-item"><span>✨ XP</span><span class="gold">+${v}</span></div>`;
+        if (lv) rewH += `<div class="levelup-banner">🎉 LEVEL UP → Niveau ${lv} !</div>`;
+      } else if (G.p.stats[k]!==undefined) {
+        G.p.stats[k]=clampStat(G.p.stats[k]+v);
+        const m=STAT_META[k];
+        rewH += `<div class="res-item"><span>${m.emoji} ${m.name}</span><span class="up">+${v} → ${G.p.stats[k]}/20</span></div>`;
+      }
+    });
+    G.p.bosses_killed=(G.p.bosses_killed||0)+1;
+    if (!G.killedBosses.includes(bf.idx)) G.killedBosses.push(bf.idx);
+  } else {
+    G.p.stats.mental=clampStat(G.p.stats.mental-1);
+  }
+
+  const quests = checkQuests();
+  delete G._boss;
+  save();
+
+  const feedH = lastFeedback ? `<div class="feedback-box ${lastFeedback.ok?'feedback-ok':'feedback-no'}">${lastFeedback.msg}</div>` : '';
+
+  document.getElementById('hdr-boss').innerHTML = hdrHTML();
+  document.getElementById('boss-content').innerHTML = `
+    ${feedH}
+    <div class="boss-card" style="text-align:center">
+      <div style="font-size:2rem">${win?'🏆':'💀'}</div>
+      <div style="font-weight:800;color:${win?'#f1c40f':'#e74c3c'};margin:.4rem 0">${win?'VICTOIRE !':'Défaite...'}</div>
+      <div style="color:#888;font-size:.82rem">${win?`"${boss.name}" est vaincu.`:"L'échec est un professeur. Reviens plus fort."}</div>
+    </div>
+    ${rewH ? `<div class="card">${rewH}</div>` : ''}
+    ${resultExtras(null, quests)}
+    <button class="back-btn" onclick="showMain()">← Retour au jeu</button>`;
+}
+
+// ═══════════════════════════════════════════════
+// CREATE CHARACTER
+// ═══════════════════════════════════════════════
+
+let selectedArch = 'Guerrier';
+
+function buildArchGrid() {
+  const grid = document.getElementById('arch-grid');
+  grid.innerHTML = '';
+  Object.entries(ARCHETYPES).forEach(([name,a]) => {
+    const card = document.createElement('div');
+    card.className = 'arch-card' + (name===selectedArch?' sel':'');
+    card.innerHTML = `<div class="arch-emo">${a.emoji}</div><div class="arch-nm" style="color:${a.color}">${name}</div><div class="arch-ds">${a.desc}</div>`;
+    card.onclick = () => {
+      selectedArch = name;
+      document.querySelectorAll('.arch-card').forEach(c=>c.classList.remove('sel'));
+      card.classList.add('sel');
+    };
+    grid.appendChild(card);
+  });
+}
+
+function startGame() {
+  const name = document.getElementById('inp-name').value.trim() || 'Aventurier';
+  const arch = ARCHETYPES[selectedArch];
+  G = {
+    p: {
+      name, archetype:selectedArch, xp:0, level:1,
+      stats:{...arch.stats},
+      actions_done:0, bosses_killed:0, streak:1,
+      last_played: new Date().toISOString().slice(0,10),
+      train_today:false, meditate_today:false,
+      learn_count:0, connect_count:0,
+    },
+    questDone: Array(QUESTS.length).fill(false),
+    killedBosses: [],
+  };
+  save();
+  document.getElementById('bottom-nav').style.display='flex';
+  showMain();
+}
+
+function confirmReset() {
+  if (confirm('Créer un nouveau personnage ? Ta progression sera effacée.')) {
+    localStorage.removeItem('ascend_v1');
+    location.reload();
+  }
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+
+buildArchGrid();
+
+if (load()) {
+  updateStreak();
+  save();
+  document.getElementById('bottom-nav').style.display='flex';
+  showMain();
+}
+</script>
+</body>
+</html>
