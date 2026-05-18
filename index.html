@@ -122,7 +122,7 @@ input.txt-input:focus{border-color:#f1c40f55}
   <input id="inp-name" class="txt-input" type="text" placeholder="Ton prénom ou pseudo" maxlength="28">
   <label class="field-lbl">Archétype</label>
   <div class="arch-grid" id="arch-grid"></div>
-  <button class="btn-start" onclick="startGame()">Commencer ma quête →</button>
+  <button type="button" class="btn-start" onclick="startGame()">Commencer ma quête →</button>
 </div>
 </div>
 
@@ -320,18 +320,40 @@ const XP_TABLE = [0,100,250,450,700,1000,1400,1900,2500,3200,4000];
 // STATE
 // ═══════════════════════════════════════════════
 
-let G = {}; // game state
+let G = {};
 
-// Safe localStorage wrapper — file:// on iOS throws SecurityError
-const store = (() => {
-  try { localStorage.setItem('_t','1'); localStorage.removeItem('_t'); return localStorage; }
-  catch(e) { const m={}; return {getItem:k=>m[k]||null, setItem:(k,v)=>{m[k]=v;}, removeItem:k=>{delete m[k];}}; }
-})();
+// Visible error reporting (no console on mobile)
+window.onerror = function(msg, src, line) {
+  document.body.insertAdjacentHTML('afterbegin',
+    '<div style="background:#e74c3c;color:#fff;padding:1rem;font-size:.85rem;position:fixed;top:0;left:0;right:0;z-index:9999">'+
+    '⚠️ Erreur JS : '+msg+' (ligne '+line+')</div>');
+  return false;
+};
 
-function save() { store.setItem('ascend_v1', JSON.stringify(G)); }
+// Safe storage wrapper — file:// on iOS blocks localStorage
+const store = (function() {
+  var mem = {};
+  try {
+    localStorage.setItem('_t','1');
+    localStorage.removeItem('_t');
+    return localStorage;
+  } catch(e) {
+    return {
+      getItem: function(k){ return mem[k] !== undefined ? mem[k] : null; },
+      setItem: function(k,v){ mem[k]=v; },
+      removeItem: function(k){ delete mem[k]; }
+    };
+  }
+}());
+
+function save() {
+  try { store.setItem('ascend_v1', JSON.stringify(G)); } catch(e) {}
+}
 function load() {
-  const raw = store.getItem('ascend_v1');
-  if (raw) { try { G = JSON.parse(raw); return true; } catch(e) {} }
+  try {
+    var raw = store.getItem('ascend_v1');
+    if (raw) { G = JSON.parse(raw); return true; }
+  } catch(e) {}
   return false;
 }
 
@@ -739,23 +761,34 @@ function buildArchGrid() {
 }
 
 function startGame() {
-  const name = document.getElementById('inp-name').value.trim() || 'Aventurier';
-  const arch = ARCHETYPES[selectedArch];
-  G = {
-    p: {
-      name, archetype:selectedArch, xp:0, level:1,
-      stats:{...arch.stats},
-      actions_done:0, bosses_killed:0, streak:1,
-      last_played: new Date().toISOString().slice(0,10),
-      train_today:false, meditate_today:false,
-      learn_count:0, connect_count:0,
-    },
-    questDone: Array(QUESTS.length).fill(false),
-    killedBosses: [],
-  };
-  save();
-  document.getElementById('bottom-nav').style.display='flex';
-  showMain();
+  try {
+    var name = (document.getElementById('inp-name').value || '').trim() || 'Aventurier';
+    var archName = selectedArch || 'Guerrier';
+    var arch = ARCHETYPES[archName];
+    if (!arch) { alert('Archétype manquant: ' + archName); return; }
+
+    var stats = Object.assign({}, arch.stats);
+    var questDone = [];
+    for (var i = 0; i < QUESTS.length; i++) questDone.push(false);
+
+    G = {
+      p: {
+        name: name, archetype: archName, xp: 0, level: 1,
+        stats: stats,
+        actions_done: 0, bosses_killed: 0, streak: 1,
+        last_played: new Date().toISOString().slice(0,10),
+        train_today: false, meditate_today: false,
+        learn_count: 0, connect_count: 0,
+      },
+      questDone: questDone,
+      killedBosses: [],
+    };
+    save();
+    document.getElementById('bottom-nav').style.display = 'flex';
+    showMain();
+  } catch(e) {
+    alert('Erreur startGame: ' + e.message);
+  }
 }
 
 function confirmReset() {
