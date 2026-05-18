@@ -120,9 +120,35 @@ input.txt-input:focus{border-color:#f1c40f55}
   </div>
   <label class="field-lbl">Ton nom</label>
   <input id="inp-name" class="txt-input" type="text" placeholder="Ton prénom ou pseudo" maxlength="28">
-  <label class="field-lbl">Archétype</label>
-  <div class="arch-grid" id="arch-grid"></div>
-  <button type="button" class="btn-start" onclick="startGame()">Commencer ma quête →</button>
+  <label class="field-lbl">Archetype</label>
+  <div class="arch-grid">
+    <div class="arch-card sel" id="arch-Guerrier" onclick="selectArch('Guerrier')">
+      <div class="arch-emo">&#9876;&#65039;</div>
+      <div class="arch-nm" style="color:#e74c3c">Guerrier</div>
+      <div class="arch-ds">Force et discipline. Tu avances quoi qu'il arrive.</div>
+    </div>
+    <div class="arch-card" id="arch-Erudit" onclick="selectArch('Erudit')">
+      <div class="arch-emo">&#128218;</div>
+      <div class="arch-nm" style="color:#3498db">Erudit</div>
+      <div class="arch-ds">La connaissance est ton arme.</div>
+    </div>
+    <div class="arch-card" id="arch-Athlete" onclick="selectArch('Athlete')">
+      <div class="arch-emo">&#127942;</div>
+      <div class="arch-nm" style="color:#2ecc71">Athlete</div>
+      <div class="arch-ds">Le corps est ton temple. L'effort te definit.</div>
+    </div>
+    <div class="arch-card" id="arch-Moine" onclick="selectArch('Moine')">
+      <div class="arch-emo">&#129340;</div>
+      <div class="arch-nm" style="color:#9b59b6">Moine</div>
+      <div class="arch-ds">La paix interieure est ta force.</div>
+    </div>
+    <div class="arch-card" id="arch-Leader" onclick="selectArch('Leader')">
+      <div class="arch-emo">&#128081;</div>
+      <div class="arch-nm" style="color:#f39c12">Leader</div>
+      <div class="arch-ds">Tu inspires les autres.</div>
+    </div>
+  </div>
+  <button type="button" class="btn-start" onclick="startGame()">Commencer ma quete &#8594;</button>
 </div>
 </div>
 
@@ -173,16 +199,11 @@ input.txt-input:focus{border-color:#f1c40f55}
 // ═══════════════════════════════════════════════
 
 const ARCHETYPES = {
-  "Guerrier":  {emoji:"⚔️", color:"#e74c3c", desc:"Force et discipline. Tu avances quoi qu'il arrive.",
-                stats:{focus:6,energie:8,mental:5,discipline:9,sante:7,social:5}},
-  "Érudit":    {emoji:"📚", color:"#3498db", desc:"La connaissance est ton arme.",
-                stats:{focus:9,energie:5,mental:8,discipline:7,sante:4,social:7}},
-  "Athlète":   {emoji:"🏆", color:"#2ecc71", desc:"Le corps est ton temple. L'effort te définit.",
-                stats:{focus:6,energie:9,mental:6,discipline:8,sante:9,social:7}},
-  "Moine":     {emoji:"🧘", color:"#9b59b6", desc:"La paix intérieure est ta force.",
-                stats:{focus:8,energie:6,mental:10,discipline:8,sante:6,social:5}},
-  "Leader":    {emoji:"👑", color:"#f39c12", desc:"Tu inspires les autres.",
-                stats:{focus:7,energie:7,mental:7,discipline:7,sante:6,social:10}},
+  "Guerrier": {color:"#e74c3c", stats:{focus:6,energie:8,mental:5,discipline:9,sante:7,social:5}},
+  "Erudit":   {color:"#3498db", stats:{focus:9,energie:5,mental:8,discipline:7,sante:4,social:7}},
+  "Athlete":  {color:"#2ecc71", stats:{focus:6,energie:9,mental:6,discipline:8,sante:9,social:7}},
+  "Moine":    {color:"#9b59b6", stats:{focus:8,energie:6,mental:10,discipline:8,sante:6,social:5}},
+  "Leader":   {color:"#f39c12", stats:{focus:7,energie:7,mental:7,discipline:7,sante:6,social:10}},
 };
 
 const STAT_META = {
@@ -417,7 +438,7 @@ function hdrHTML() {
   const pct = max ? Math.round(cur/max*100) : 100;
   const streak = G.p.streak||1;
   return `<div class="hdr"><div class="wrap">
-    <div class="hdr-name">${arch.emoji} ${G.p.name}</div>
+    <div class="hdr-name">${G.p.name}</div>
     <div class="hdr-sub" style="color:${arch.color}">${G.p.archetype}</div> <div style="display:flex;align-items:center;gap:.5rem;margin-top:.1rem"><span style="font-size:.72rem;color:#888">Niveau</span><span style="font-size:.85rem;font-weight:800;color:#f1c40f">${lv}</span></div>
     <div class="xp-wrap">
       <div class="xp-label">XP ${cur}/${max}</div>
@@ -742,22 +763,14 @@ function endBoss(lastFeedback) {
 // CREATE CHARACTER
 // ═══════════════════════════════════════════════
 
-let selectedArch = 'Guerrier';
+var selectedArch = 'Guerrier';
 
-function buildArchGrid() {
-  const grid = document.getElementById('arch-grid');
-  grid.innerHTML = '';
-  Object.entries(ARCHETYPES).forEach(([name,a]) => {
-    const card = document.createElement('div');
-    card.className = 'arch-card' + (name===selectedArch?' sel':'');
-    card.innerHTML = `<div class="arch-emo">${a.emoji}</div><div class="arch-nm" style="color:${a.color}">${name}</div><div class="arch-ds">${a.desc}</div>`;
-    card.onclick = () => {
-      selectedArch = name;
-      document.querySelectorAll('.arch-card').forEach(c=>c.classList.remove('sel'));
-      card.classList.add('sel');
-    };
-    grid.appendChild(card);
-  });
+function selectArch(name) {
+  selectedArch = name;
+  var cards = document.querySelectorAll('.arch-card');
+  for (var i = 0; i < cards.length; i++) cards[i].classList.remove('sel');
+  var el = document.getElementById('arch-' + name);
+  if (el) el.classList.add('sel');
 }
 
 function startGame() {
@@ -801,8 +814,6 @@ function confirmReset() {
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
-
-buildArchGrid();
 
 if (load()) {
   updateStreak();
