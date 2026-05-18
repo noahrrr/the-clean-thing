@@ -322,10 +322,16 @@ const XP_TABLE = [0,100,250,450,700,1000,1400,1900,2500,3200,4000];
 
 let G = {}; // game state
 
-function save() { localStorage.setItem('ascend_v1', JSON.stringify(G)); }
+// Safe localStorage wrapper — file:// on iOS throws SecurityError
+const store = (() => {
+  try { localStorage.setItem('_t','1'); localStorage.removeItem('_t'); return localStorage; }
+  catch(e) { const m={}; return {getItem:k=>m[k]||null, setItem:(k,v)=>{m[k]=v;}, removeItem:k=>{delete m[k];}}; }
+})();
+
+function save() { store.setItem('ascend_v1', JSON.stringify(G)); }
 function load() {
-  const raw = localStorage.getItem('ascend_v1');
-  if (raw) { G = JSON.parse(raw); return true; }
+  const raw = store.getItem('ascend_v1');
+  if (raw) { try { G = JSON.parse(raw); return true; } catch(e) {} }
   return false;
 }
 
@@ -513,9 +519,12 @@ function doAction(id) {
 
   const levelUp = addXP(a.xp);
   const quests = checkQuests();
+
+  // Decide event once, keep in sync with button
+  const triggerEvent = (id !== 6 && Math.random() < 0.35);
+  if (triggerEvent) G._pendingEvent = EVENTS[Math.floor(Math.random()*EVENTS.length)];
   save();
 
-  // Build result
   let changesH = '';
   changes.forEach(({s,diff}) => {
     const m=STAT_META[s], cls=diff>0?'up':'dn', arr=diff>0?'↑':'↓';
@@ -531,15 +540,12 @@ function doAction(id) {
       ${changesH}
     </div>
     ${resultExtras(levelUp, quests)}
-    ${id!==6 && Math.random()<0.35 ? `<button class="btn-start" style="margin-top:.5rem" onclick="showEvent()">⚡ Événement →</button>` : `<button class="back-btn" onclick="showMain()">← Retour au jeu</button>`}
+    ${triggerEvent
+      ? `<button class="btn-start" style="margin-top:.5rem" onclick="showEvent()">⚡ Événement →</button>`
+      : `<button class="back-btn" onclick="showMain()">← Retour au jeu</button>`}
   `;
   showScreen('result');
   setNavActive('play');
-
-  // Store random event if needed
-  if (id!==6 && Math.random()<0.35) {
-    G._pendingEvent = EVENTS[Math.floor(Math.random()*EVENTS.length)];
-  }
 }
 
 // ═══════════════════════════════════════════════
@@ -754,7 +760,7 @@ function startGame() {
 
 function confirmReset() {
   if (confirm('Créer un nouveau personnage ? Ta progression sera effacée.')) {
-    localStorage.removeItem('ascend_v1');
+    store.removeItem('ascend_v1');
     location.reload();
   }
 }
